@@ -1,1 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>CaseBlitz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-white p-6">
+  <header class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold text-purple-500">🎁 CaseBlitz</h1>
+    {% if user %}
+    <div>
+      <span>👤 {{ user.username }}</span> | 
+      <span>💰 Баланс: {{ user.balance }}₽</span> | 
+      <a href="{{ url_for('logout') }}" class="text-red-400 hover:underline">Выйти</a>
+    </div>
+    {% else %}
+    <div>
+      <a href="{{ url_for('login') }}" class="mr-4 text-green-400 hover:underline">Войти</a>
+      <a href="{{ url_for('register') }}" class="text-green-400 hover:underline">Регистрация</a>
+    </div>
+    {% endif %}
+  </header>
 
+  {% if user %}
+  <section>
+    <h2 class="text-xl mb-4">Кейсы</h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-gray-800 p-4 rounded shadow hover:shadow-lg transition cursor-pointer" onclick="openCase('starter', 100)">
+        <h3 class="font-semibold mb-2">🎒 Starter Case</h3>
+        <p>Цена: 100₽</p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded shadow hover:shadow-lg transition cursor-pointer" onclick="openCase('epic', 300)">
+        <h3 class="font-semibold mb-2">🧨 Epic Case</h3>
+        <p>Цена: 300₽</p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded shadow hover:shadow-lg transition cursor-pointer" onclick="openCase('legendary', 600)">
+        <h3 class="font-semibold mb-2">🔥 Legendary Case</h3>
+        <p>Цена: 600₽</p>
+      </div>
+      <div class="bg-gray-800 p-4 rounded shadow hover:shadow-lg transition cursor-pointer" onclick="openCase('ultra', 1000)">
+        <h3 class="font-semibold mb-2">👑 Ultra Case</h3>
+        <p>Цена: 1000₽</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="mt-8">
+    <h2 class="text-xl mb-4">Твой дроп</h2>
+    <ul id="drops" class="space-y-2">
+      {% for drop in user.drops %}
+      <li class="bg-gray-700 p-3 rounded flex justify-between items-center">
+        <span>{{ drop.item_name }} ({{ drop.price }}₽)</span>
+        <button onclick="sellDrop({{ drop.id }})" class="bg-red-600 px-2 py-1 rounded hover:bg-red-700">Продать</button>
+      </li>
+      {% else %}
+      <li>У тебя пока нет предметов</li>
+      {% endfor %}
+    </ul>
+  </section>
+
+  <section class="mt-8">
+    <h2 class="text-xl mb-4">Пополнить баланс</h2>
+    <input type="number" id="topupAmount" class="p-2 rounded text-black" min="10" value="100" />
+    <button onclick="topUp()" class="bg-green-600 px-4 py-2 rounded hover:bg-green-700">Пополнить</button>
+  </section>
+  {% else %}
+  <p>Пожалуйста, войдите или зарегистрируйтесь, чтобы играть.</p>
+  {% endif %}
+
+  <script>
+    async function openCase(type, price) {
+      const res = await fetch('/open_case', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({type, price})
+      });
+      const data = await res.json();
+      if(data.error) return alert(data.error);
+      alert(`Поздравляем! Вам выпал ${data.drop}`);
+      location.reload();
+    }
+    async function sellDrop(drop_id) {
+      const res = await fetch('/sell_drop', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({drop_id})
+      });
+      const data = await res.json();
+      if(data.error) return alert(data.error);
+      alert('Предмет продан!');
+      location.reload();
+    }
+    async function topUp() {
+      const amount = parseInt(document.getElementById('topupAmount').value);
+      if(amount <= 0) return alert('Введите сумму больше 0');
+      const res = await fetch('/topup', {
